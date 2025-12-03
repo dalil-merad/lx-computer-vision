@@ -29,8 +29,18 @@ def get_steer_matrix_left_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     max_val = steer_unit.max()
     if max_val != 0:
         steer_unit /= max_val
+    """      
+    vert_unit = np.arange(height, dtype=float)  # 0,...,height-1
 
-    steer_matrix_left_lane[:, :width] = 1 # CHANGE ME
+    if vert_unit.max() > 1:
+        vert_unit /= (height - 1)  # normalize to [0,1]
+
+    vert_unit = vert_unit[:, None]          # (H,1)
+    horz_unit = steer_unit[None, :]         # (1,W)
+
+    steer_block_left = vert_unit * horz_unit
+    """
+    steer_matrix_left_lane[:, :width] = -3*steer_unit # CHANGE ME
 
     return steer_matrix_left_lane
 
@@ -52,14 +62,25 @@ def get_steer_matrix_right_lane_markings(shape: Tuple[int, int]) -> np.ndarray:
     steer_matrix_right_lane = np.zeros((height, shape[1]))
 
     # Create descending ramp from width → 1
-    steer_unit = np.arange(width, 0, -1).astype(float)
+    steer_unit = np.arange(int(width), 0, -1).astype(float)
 
     # Normalize if not all zeros
     max_val = steer_unit.max()
     if max_val != 0:
         steer_unit /= max_val
+    """ 
+    vert_unit = np.arange(height, dtype=float)  # 0,...,height-1
 
-    steer_matrix_right_lane[:, width:] = 1 # CHANGE ME
+    if vert_unit.max() > 1:
+        vert_unit /= (height - 1)  # normalize to [0,1]
+
+    vert_unit = vert_unit[:, None]          # (H,1)
+    horz_unit = steer_unit[None, :]         # (1,W)
+
+    steer_block_right = vert_unit * horz_unit 
+    """
+    
+    steer_matrix_right_lane[:, int(width):] = 5.0*steer_unit # CHANGE ME
 
     return steer_matrix_right_lane
 
@@ -73,12 +94,12 @@ def detect_lane_markings(image: np.ndarray, projector: GroundProjector) -> Tuple
         right_masked_img:  Masked image for the solid-white line (numpy.ndarray)
     """
 
-    sigma = 8  # CHANGE ME - Gaussian blur sigma
-    threshold = 10  # CHANGE ME - minimum threshold for gradiant magnitude
-    white_lower_hsv = np.array([0, 0, 0])  # CHANGE ME - color thresholds
-    white_upper_hsv = np.array([179, 255, 255])  # CHANGE ME
-    yellow_lower_hsv = np.array([0, 0, 0])  # CHANGE ME
-    yellow_upper_hsv = np.array([179, 255, 255])  # CHANGE ME
+    sigma = 3.0  # CHANGE ME - Gaussian blur sigma
+    threshold = 20  # CHANGE ME - minimum threshold for gradiant magnitude
+    white_lower_hsv = np.array([0,0,160])         # CHANGE ME
+    white_upper_hsv = np.array([175,95,255])   # CHANGE ME
+    yellow_lower_hsv = np.array([10,95,100])   # CHANGE ME
+    yellow_upper_hsv = np.array([41,255,255])   # CHANGE ME
 
     h, w, _ = image.shape
 
@@ -89,6 +110,7 @@ def detect_lane_markings(image: np.ndarray, projector: GroundProjector) -> Tuple
 
     # Most of our operations will be performed on the grayscale version
     imggray = cv2.cvtColor(imgbgr, cv2.COLOR_BGR2GRAY)
+    
 
     horizon = 270
     if projector is not None:
@@ -96,9 +118,10 @@ def detect_lane_markings(image: np.ndarray, projector: GroundProjector) -> Tuple
         normalized_vector = projector.ground2vector(far_away_point_ground)
         far_away_point_image = projector.camera.vector2pixel(normalized_vector)
         horizon = far_away_point_image.as_integers()[0]
-
+    
+    #print(f'horizon is : {horizon}')
     mask_ground = np.zeros((h, w), dtype=np.uint8)
-    mask_ground[int(h - horizon + 50) :, :] = 1 # we add a small buffer to cut the entire horizon
+    mask_ground[int(h - horizon + 10) :, :] = 1 # we add a small buffer to cut the entire horizon
 
     # Smooth the image using a Gaussian kernel
     img_gaussian_filter = cv2.GaussianBlur(imggray, (0, 0), sigma)

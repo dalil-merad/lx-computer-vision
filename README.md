@@ -94,6 +94,7 @@ Now that your virtual robot is ready you can start the Duckiematrix. From this e
 
 ```
 dts code start_matrix
+
 ```
 
 You should see the Unity-based Duckiematrix simulator start up. 
